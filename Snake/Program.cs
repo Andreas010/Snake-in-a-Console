@@ -32,6 +32,7 @@ namespace Snake
 
             int foodX = headX;
             int foodY = headY - 1;
+            int score = -1;
 
             Console.CursorVisible = false;
 
@@ -55,6 +56,7 @@ namespace Snake
                     Console.Write('█');
                     foodX = r.Next(0, width-1);
                     foodY = r.Next(0, height-1);
+                    score++;
                 }
                 else
                 {
@@ -106,6 +108,10 @@ namespace Snake
                     Console.Clear();
                     while (Console.KeyAvailable)
                         Console.ReadKey(true);
+                    Console.SetCursorPosition(width / 2 - 5, height / 2);
+                    Console.Write("GAME  OVER");
+                    Console.SetCursorPosition(width / 2 - 5, height / 2+2);
+                    Console.Write($"SCORE: {score}");
                     Console.ReadKey(true);
                     Main();
                 }
