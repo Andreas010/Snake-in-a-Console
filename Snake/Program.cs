@@ -78,13 +78,13 @@ namespace Snake
                 if (Console.KeyAvailable)
                 {
                     ConsoleKey key = Console.ReadKey(true).Key;
-                    if (key == ConsoleKey.UpArrow)
+                    if (key == ConsoleKey.UpArrow && direction != 2)
                         direction = 0;
-                    else if (key == ConsoleKey.RightArrow)
+                    else if (key == ConsoleKey.RightArrow && direction != 3)
                         direction = 1;
-                    else if (key == ConsoleKey.DownArrow)
+                    else if (key == ConsoleKey.DownArrow && direction != 0)
                         direction = 2;
-                    else if (key == ConsoleKey.LeftArrow)
+                    else if (key == ConsoleKey.LeftArrow && direction != 1)
                         direction = 3;
                 }
 
