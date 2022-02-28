@@ -7,9 +7,34 @@ namespace Snake
     {
         static readonly int width = Console.WindowWidth;
         static readonly int height = Console.WindowHeight;
+        static int reactionTime = 50;
 
         static void Main()
         {
+            Console.Clear();
+
+            Write("SNAKE", width / 2 - 2, height / 5);
+            Write("-----", width / 2 - 2, height / 5 + 1);
+            Write("1. Play", width / 2 - 2, height / 5 + 3);
+            Write("2. Settings", width / 2 - 2, height / 5 + 4);
+            Write("3. Quit", width / 2 - 2, height / 5 + 5);
+
+            while (true)
+            {
+                ConsoleKey k = Console.ReadKey(true).Key;
+
+                if (k == ConsoleKey.D1)
+                    break;
+
+                if (k == ConsoleKey.D2)
+                    Settings();
+
+                if (k == ConsoleKey.D3)
+                    Environment.Exit(0);
+
+                //TODO: Implement Settings
+            }
+
             Console.Clear();
             sbyte[,] stepMatrix = new sbyte[width, height];
             for (int i = 0; i < width; i++)
@@ -37,8 +62,6 @@ namespace Snake
             Console.CursorVisible = false;
 
             Random r = new();
-
-            int reactionTime = 50;
 
             while (true)
             {
@@ -129,6 +152,125 @@ namespace Snake
             else if (value >= maxValue)
                 value = 0;
             return value;
+        }
+
+        static void Write(string text, int posX, int posY, bool reset = false)
+        {
+            int oldX = 0;
+            int oldY = 0;
+
+            if (reset)
+            {
+                oldX = Console.CursorLeft;
+                oldY = Console.CursorTop;
+            }
+
+            Console.SetCursorPosition(posX, posY);
+            Console.Write(text);
+
+            if (reset)
+            {
+                Console.SetCursorPosition(oldX, oldY);
+            }
+        }
+
+        static void Settings()
+        {
+            Console.Clear();
+
+            Write("Settings", width / 2 - 4, height / 5);
+            Write("--------", width / 2 - 4, height / 5 + 1);
+            Write("1. Difficulty", width / 2 - 4, height / 5 + 3);
+            Write("2. Size", width / 2 - 4, height / 5 + 4);
+            Write("3. Toggle Border Portals", width / 2 - 4, height / 5 + 5);
+            Write("4. Set cmd shortcut", width / 2 - 4, height / 5 + 6);
+            Write("5. Back to menu", width / 2 - 4, height / 5 + 7);
+
+            while (true)
+            {
+                ConsoleKey k = Console.ReadKey(true).Key;
+
+                if (k == ConsoleKey.D5)
+                    return;
+
+                if(k == ConsoleKey.D1)
+                {
+                    Console.Clear();
+                    Write("Difficulty", width / 2 - 5, height / 5);
+                    Write("----------", width / 2 - 5, height / 5 + 1);
+                    Write("1. Easy", width / 2 - 5, height / 5 + 3);
+                    Write("2. Medium", width / 2 - 5, height / 5 + 4);
+                    Write("3. Hard", width / 2 - 5, height / 5 + 5);
+                    Write("4. Apocalypse", width / 2 - 5, height / 5 + 6);
+                    Write("5. Custom", width / 2 - 5, height / 5 + 7);
+                    Write("6. Back to settings", width / 2 - 5, height / 5 + 8);
+
+                    while (true)
+                    {
+                        k = Console.ReadKey(true).Key;
+
+                        if(k == ConsoleKey.D6)
+                        {
+                            Settings();
+                            return;
+                        }
+
+                        else if(k == ConsoleKey.D5)
+                        {
+                            while (true)
+                            {
+                                Console.Clear();
+                                Write("Custom Difficulty", width / 2 - 6, height / 5);
+                                Write("-----------------", width / 2 - 6, height / 5 + 1);
+                                Write("Set Reaction Time (ms): ", width / 2 - 6, height / 5 + 3);
+                                Write("Leave empty to exit", width / 2 - 6, height / 5 + 5, true);
+
+                                string input = Console.ReadLine();
+
+                                if (input == null)
+                                    break;
+                                if (int.TryParse(input, out reactionTime))
+                                {
+                                    Settings();
+                                    return;
+                                }
+                            }
+                        }
+
+                        else
+                        {
+                            switch (k)
+                            {
+                                case ConsoleKey.D1:
+                                    reactionTime = 200;
+                                    break;
+                                case ConsoleKey.D2:
+                                    reactionTime = 50;
+                                    break;
+                                case ConsoleKey.D3:
+                                    reactionTime = 30;
+                                    break;
+                                case ConsoleKey.D4:
+                                    reactionTime = 10;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+                }
+
+                else if(k == ConsoleKey.D2)
+                {
+                    Write("Size", width / 2 - 2, height / 5);
+                    Write("----", width / 2 - 2, height / 5 + 1);
+                    Write("1. Small (30x30)", width / 2 - 2, height / 5 + 3);
+                    Write("2. Medium (60x60)", width / 2 - 2, height / 5 + 4);
+                    Write("3. Large (120x120)", width / 2 - 2, height / 5 + 5);
+                    Write("4. Custom", width / 2 - 2, height / 5 + 6);
+                    Write("5. Back to settings", width / 2 - 2, height / 5 + 7);
+                }
+            }
         }
     }
 }
