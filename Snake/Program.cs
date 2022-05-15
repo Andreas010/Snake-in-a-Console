@@ -5,8 +5,8 @@ namespace Snake
 {
     class Program
     {
-        static readonly int width = Console.WindowWidth;
-        static readonly int height = Console.WindowHeight;
+        static int width = Console.WindowWidth;
+        static int height = Console.WindowHeight;
         static int reactionTime = 50;
 
         static void Main()
@@ -27,13 +27,21 @@ namespace Snake
                     break;
 
                 if (k == ConsoleKey.D2)
+                {
                     Settings();
+                    width = Console.WindowWidth;
+                    height = Console.WindowHeight;
+                    Main();
+                    return;
+                }
 
                 if (k == ConsoleKey.D3)
                     Environment.Exit(0);
 
                 //TODO: Implement Settings
             }
+
+            
 
             Console.Clear();
             sbyte[,] stepMatrix = new sbyte[width, height];
@@ -174,102 +182,222 @@ namespace Snake
             }
         }
 
-        static void Settings()
+        static int CreateMenu(string[] text, bool cleared = true)
         {
-            Console.Clear();
+            if(cleared)
+                Console.Clear();
 
-            Write("Settings", width / 2 - 4, height / 5);
-            Write("--------", width / 2 - 4, height / 5 + 1);
-            Write("1. Difficulty", width / 2 - 4, height / 5 + 3);
-            Write("2. Size", width / 2 - 4, height / 5 + 4);
-            Write("3. Toggle Border Portals", width / 2 - 4, height / 5 + 5);
-            Write("4. Set cmd shortcut", width / 2 - 4, height / 5 + 6);
-            Write("5. Back to menu", width / 2 - 4, height / 5 + 7);
+            for(int i = 0; i < text.Length; i++)
+            {
+
+                if(i == 0)
+                {
+                    Write(text[0], width / 2 - text[0].Length / 2, height / 5);
+
+                    string underline = null;
+
+                    for (int j = 0; j < text[0].Length; j++)
+                        underline += "-";
+
+                    Write(underline, width / 2 - text[0].Length / 2, height / 5 + 1);
+                }
+
+                else
+                {
+                    Write($"{i}. {text[i]}", width / 2 - text[0].Length / 2, height / 5 + i + 2);
+                }
+            }
+
+            int output = 0;
 
             while (true)
             {
-                ConsoleKey k = Console.ReadKey(true).Key;
+                string k = Console.ReadKey(true).KeyChar.ToString();
 
-                if (k == ConsoleKey.D5)
+                int kNum = 0;
+
+                if(int.TryParse(k, out kNum))
+                {
+                    if(kNum > 0 && kNum < text.Length)
+                    {
+                        output = kNum;
+                        break;
+                    }
+                }
+            }
+
+            return output;
+        }
+
+        static void Settings()
+        {
+            int uInput = CreateMenu(new string[]
+            {
+                "Settings",
+                "Difficulty",
+                "Size",
+                "Toggle Border Portals",
+                "Set cmd shortcut",
+                "Back to menu"
+            });
+
+            if (uInput == 5)
+                return;
+
+            if (uInput == 1)
+            {
+                uInput = CreateMenu(new string[]
+                {
+                    "Difficulty",
+                    "Easy",
+                    "Medium",
+                    "Hard",
+                    "Apocalypse",
+                    "Custom",
+                    "Back to settings"
+                });
+
+                if(uInput == 6)
+                {
+                    Settings();
                     return;
+                }
 
-                if(k == ConsoleKey.D1)
+                if (uInput == 5)
+                {
+                    while (true)
+                    {
+                        Console.Clear();
+                        Write("Custom Difficulty", width / 2 - 6, height / 5);
+                        Write("-----------------", width / 2 - 6, height / 5 + 1);
+                        Write("Set Reaction Time (ms): ", width / 2 - 6, height / 5 + 3);
+                        Write("Leave empty to exit", width / 2 - 6, height / 5 + 5, true);
+
+                        string input = Console.ReadLine();
+
+                        if (input == "")
+                            break;
+                        if (int.TryParse(input, out reactionTime))
+                        {
+                            Settings();
+                            return;
+                        }
+                    }
+                }
+
+                else
+                {
+                    switch (uInput)
+                    {
+                        case 1:
+                            reactionTime = 200;
+                            break;
+                        case 2:
+                            reactionTime = 50;
+                            break;
+                        case 3:
+                            reactionTime = 30;
+                            break;
+                        case 4:
+                            reactionTime = 10;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            if (uInput == 2)
+            {
+                uInput = CreateMenu(new string[] {
+                    "Size",
+                    "Small (60x60)",
+                    "Medium (90x90),",
+                    "Large (120x120)",
+                    "Custom",
+                    "Back to settings"
+                });
+
+                if (uInput == 5)
+                {
+                    Settings();
+                    return;
+                }
+
+                else if (uInput == 4)
                 {
                     Console.Clear();
-                    Write("Difficulty", width / 2 - 5, height / 5);
-                    Write("----------", width / 2 - 5, height / 5 + 1);
-                    Write("1. Easy", width / 2 - 5, height / 5 + 3);
-                    Write("2. Medium", width / 2 - 5, height / 5 + 4);
-                    Write("3. Hard", width / 2 - 5, height / 5 + 5);
-                    Write("4. Apocalypse", width / 2 - 5, height / 5 + 6);
-                    Write("5. Custom", width / 2 - 5, height / 5 + 7);
-                    Write("6. Back to settings", width / 2 - 5, height / 5 + 8);
+
+                    Write("Custom Size", width / 2 - 6, height / 5);
+                    Write("-----------", width / 2 - 6, height / 5 + 1);
+                    Write("Width: ", width / 2 - 6, height / 5 + 3);
+                    Write("Height: ", width / 2 - 6, height / 5 + 4, true);
+                    Write("Leave empty to exit", width / 2 - 6, height / 5 + 5, true);
+
+                    int newW, newH;
 
                     while (true)
                     {
-                        k = Console.ReadKey(true).Key;
+                        string input = Console.ReadLine();
 
-                        if(k == ConsoleKey.D6)
+                        if (input == "")
                         {
                             Settings();
                             return;
                         }
 
-                        else if(k == ConsoleKey.D5)
+                        if (int.TryParse(input, out newW))
                         {
-                            while (true)
-                            {
-                                Console.Clear();
-                                Write("Custom Difficulty", width / 2 - 6, height / 5);
-                                Write("-----------------", width / 2 - 6, height / 5 + 1);
-                                Write("Set Reaction Time (ms): ", width / 2 - 6, height / 5 + 3);
-                                Write("Leave empty to exit", width / 2 - 6, height / 5 + 5, true);
+                            break;
+                        }
+                    }
 
-                                string input = Console.ReadLine();
+                    Console.SetCursorPosition(width / 2 + 2, height / 5 + 4);
 
-                                if (input == null)
-                                    break;
-                                if (int.TryParse(input, out reactionTime))
-                                {
-                                    Settings();
-                                    return;
-                                }
-                            }
+                    while (true)
+                    {
+                        string input = Console.ReadLine();
+
+                        if (input == "")
+                        {
+                            Settings();
+                            return;
                         }
 
-                        else
+                        if (int.TryParse(input, out newH))
                         {
-                            switch (k)
-                            {
-                                case ConsoleKey.D1:
-                                    reactionTime = 200;
-                                    break;
-                                case ConsoleKey.D2:
-                                    reactionTime = 50;
-                                    break;
-                                case ConsoleKey.D3:
-                                    reactionTime = 30;
-                                    break;
-                                case ConsoleKey.D4:
-                                    reactionTime = 10;
-                                    break;
-                                default:
-                                    break;
-                            }
+                            newH /= 2;
+
+                            Console.SetWindowSize(newW, newH);
+                            width = Console.WindowWidth;
+                            height = Console.WindowHeight;
+                            Settings();
+                            return;
                         }
                     }
                 }
 
-                else if(k == ConsoleKey.D2)
+                else
                 {
-                    Write("Size", width / 2 - 2, height / 5);
-                    Write("----", width / 2 - 2, height / 5 + 1);
-                    Write("1. Small (30x30)", width / 2 - 2, height / 5 + 3);
-                    Write("2. Medium (60x60)", width / 2 - 2, height / 5 + 4);
-                    Write("3. Large (120x120)", width / 2 - 2, height / 5 + 5);
-                    Write("4. Custom", width / 2 - 2, height / 5 + 6);
-                    Write("5. Back to settings", width / 2 - 2, height / 5 + 7);
+                    switch (uInput)
+                    {
+                        case 1:
+                            Console.SetWindowSize(60, 30);
+                            Console.SetBufferSize(60, 30);
+                            break;
+                        case 2:
+                            Console.SetWindowSize(90, 45);
+                            Console.SetBufferSize(90, 45);
+                            break;
+                        case 3:
+                            Console.SetWindowSize(120, 60);
+                            Console.SetBufferSize(120, 60);
+                            break;
+                        default:
+                            break;
+                    }
                 }
+                
             }
         }
     }
