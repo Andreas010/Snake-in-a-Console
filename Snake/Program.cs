@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.IO;
 using System.Linq;
@@ -13,7 +13,36 @@ namespace Snake
         static int reactionTime = 50;
         static bool walls = false;
 
-        static void Main()
+        static void Main(string[] args)
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                string arg = args[i].ToLower();
+
+                if (arg == "--help")
+                {
+                    Console.Write(
+                        "SNAKE IN A CONSOLE\n" +
+                        "------------------\n" +
+                        "--help => This text\n" +
+                        "--speed [value] => change the time waited between each step in ms (def=50)\n"
+                        );
+                    return;
+                }
+                else if (arg == "--speed" && i + 1 < args.Length)
+                {
+                    if (int.TryParse(args[i + 1], out int _reactionTime))
+                        reactionTime = _reactionTime;
+                }
+            }
+
+            while (true)
+            {
+                Game();
+            }          
+        }
+
+        static void Game()
         {
             int input = CreateMenu(new string[] {
                 "SNAKE",
@@ -74,12 +103,12 @@ namespace Snake
         static void Game()
         {
             Console.Clear();
-            sbyte[,] stepMatrix = new sbyte[width, height];
+            byte[,] stepMatrix = new byte[width, height];
             for (int i = 0; i < width; i++)
             {
                 for (int j = 0; j < height; j++)
                 {
-                    stepMatrix[i, j] = -1;
+                    stepMatrix[i, j] = 0xFF;
                 }
             }
 
@@ -90,8 +119,8 @@ namespace Snake
             int tailX = headX;
             int tailY = headY + 1;
             stepMatrix[tailX, tailY] = 0;
-            sbyte direction = 0;
-            sbyte dir = 0;
+            byte direction = 0;
+            byte dir = 0;
 
             int foodX = headX;
             int foodY = headY - 1;
@@ -122,7 +151,7 @@ namespace Snake
                 else
                 {
                     dir = stepMatrix[tailX, tailY];
-                    stepMatrix[tailX, tailY] = -1;
+                    stepMatrix[tailX, tailY] = 0xFF;
                     if (dir == 0)
                         tailY--;
                     else if (dir == 1)
