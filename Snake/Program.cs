@@ -1,13 +1,17 @@
-﻿using System;
+using System;
 using System.Threading;
+using System.IO;
+using System.Linq;
 
 namespace Snake
 {
     class Program
     {
-        static readonly int width = Console.WindowWidth;
-        static readonly int height = Console.WindowHeight;
+        static readonly string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Snake\\";
+        static int width = Console.WindowWidth;
+        static int height = Console.WindowHeight;
         static int reactionTime = 50;
+        static bool walls = false;
 
         static void Main(string[] args)
         {
@@ -36,6 +40,64 @@ namespace Snake
             {
                 Game();
             }          
+        }
+
+        static void Game()
+        {
+            int input = CreateMenu(new string[] {
+                "SNAKE",
+                "Play",
+                "Settings",
+                "Stats",
+                "Quit"
+            });
+
+            if (input == 1)
+                Game();
+
+            else if (input == 2)
+            {
+                Settings();
+                width = Console.WindowWidth;
+                height = Console.WindowHeight;
+                Main();
+            }
+
+            else if(input == 3)
+            {
+                Console.Clear();
+
+                Write("Stats", width / 2 - 3, height / 5);
+                Write("-----", width / 2 - 3, height / 5 + 1);
+
+                int offY = 1;
+
+                if (File.Exists(appdata + "stats"))
+                {
+                    string[] lines = File.ReadAllLines(appdata + "stats");
+
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        bool saveWalls = lines[i].Remove(4) == true.ToString() ? true : false;
+
+                        Write($"With{(saveWalls ? "" : "out")} walls: {lines[i].Substring((saveWalls ? 4 : 5))}", width / 2 - 3, height / 5 + 3 + i);
+
+                        offY += i;
+                    }
+                }
+
+                else
+                    Write("No data", width / 2 - 4, height / 5 + 3);
+
+                Write("Press any key to continue...", width / 2 - 3, height / 5 + 4 + offY);
+
+                Console.ReadKey(true);
+
+                Main();
+            }
+
+            else if (input == 4)
+                Environment.Exit(0);
         }
 
         static void Game()
@@ -127,25 +189,116 @@ namespace Snake
                 else if (dir == 3)
                     headX--;
 
-                headX = Wrap(headX, width - 1);
-                headY = Wrap(headY, height - 1);
+                headX = WrapHead(headX, width - 1, score);
+                headY = WrapHead(headY, height - 1, score);
 
-                if (stepMatrix[headX, headY] != 0xFF)
+                if (stepMatrix[headX, headY] != -1)
                 {
-                    Console.Clear();
-                    while (Console.KeyAvailable)
-                        Console.ReadKey(true);
-                    Console.SetCursorPosition(width / 2 - 5, height / 2);
-                    Console.Write("GAME  OVER");
-                    Console.SetCursorPosition(width / 2 - 5, height / 2 + 2);
-                    Console.Write($"SCORE: {score}");
-                    Console.ReadKey(true);
+                    Die(score);
+                    return;
                 }
 
                 TimeSpan span = DateTime.Now - past;
                 if (span.TotalMilliseconds < reactionTime)
                     Thread.Sleep(reactionTime - (int)span.TotalMilliseconds);
             }
+        }
+
+        static void Die(int score)
+        {
+            Console.Clear();
+
+            Write("You died!", width / 2 - 4, height / 5);
+            Write("---------", width / 2 - 4, height / 5 + 1);
+            Write($"Score: {score}", width / 2 - 4, height / 5 + 3);
+
+            bool highScore = false;
+
+            if(!Directory.Exists(appdata))
+                Directory.CreateDirectory(appdata);
+            if (!File.Exists(appdata + "stats"))
+            {
+                File.WriteAllLines(appdata + "stats", new string[] { $"{walls}{score}" });
+                highScore = true;
+            }
+            else
+            {
+                string[] text = File.ReadAllLines(appdata + "stats");
+
+                bool executed = false;
+
+                for(int i = 0; i < text.Length; i++)
+                {
+                    if (text[i].StartsWith(walls.ToString()))
+                    {
+                        executed = true;
+
+                        if(int.Parse(text[i].Substring((walls ? 4 : 5))) < score)
+                        {
+                            highScore = true;
+                            text[i] = $"{walls}{score}";
+
+                            File.WriteAllLines(appdata + "stats", text);
+                        }
+
+                        break;
+                    }
+                }
+
+                if (!executed)
+                {
+                    File.AppendAllText(appdata + "stats", $"{walls}{score}");
+                    highScore = true;
+                }
+            }
+
+            if (highScore)
+                Write("New high score!", width / 2 - 4, height / 5 + 4);
+            else
+            {
+                foreach(string s in File.ReadAllLines(appdata + "stats"))
+                {
+                    if (s.StartsWith(walls.ToString()))
+                        Write($"High score: {s.Substring(4)}", width / 2 - 4, height / 5 + 4);
+                }
+            }
+
+            Write($"With{(walls ? "" : "out")} walls", width / 2 - 4, height / 5 + 5);
+
+            int input = CreateMenu(new string[] {
+                "         ",
+                "Retry",
+                "Back to menu"
+            }, false, 6);
+
+            if (input == 1)
+                Game();
+
+            else if (input == 2)
+                Main();
+        }
+
+        static int WrapHead(int value, int maxValue, int score)
+        {
+            if (value < 0)
+            {
+                if (walls)
+                {
+                    Die(score);
+                    Environment.Exit(0);
+                }
+                value = maxValue;
+            }
+            else if (value >= maxValue)
+            {
+                if (walls)
+                {
+                    Die(score);
+                    Environment.Exit(0);
+                }
+                value = 0;
+            }
+            return value;
         }
 
         static int Wrap(int value, int maxValue)
@@ -155,6 +308,270 @@ namespace Snake
             else if (value >= maxValue)
                 value = 0;
             return value;
+        }
+
+        static void Write(string text, int posX, int posY, bool reset = false)
+        {
+            int oldX = 0;
+            int oldY = 0;
+
+            if (reset)
+            {
+                oldX = Console.CursorLeft;
+                oldY = Console.CursorTop;
+            }
+
+            Console.SetCursorPosition(posX, posY);
+            Console.Write(text);
+
+            if (reset)
+            {
+                Console.SetCursorPosition(oldX, oldY);
+            }
+        }
+
+        static int CreateMenu(string[] text, bool cleared = true, int offY = 0)
+        {
+            if(cleared)
+                Console.Clear();
+
+            for(int i = 0; i < text.Length; i++)
+            {
+
+                if(i == 0)
+                {
+                    Write(text[0], width / 2 - text[0].Length / 2, height / 5 + offY);
+
+                    string underline = null;
+
+                    for (int j = 0; j < text[0].Length; j++)
+                        underline += "-";
+
+                    Write(underline, width / 2 - text[0].Length / 2, height / 5 + 1 + offY);
+                }
+
+                else
+                {
+                    Write($"{i}. {text[i]}", width / 2 - text[0].Length / 2, height / 5 + i + 2 + offY);
+                }
+            }
+
+            int output = 0;
+
+            while (true)
+            {
+                string k = Console.ReadKey(true).KeyChar.ToString();
+
+                int kNum = 0;
+
+                if(int.TryParse(k, out kNum))
+                {
+                    if(kNum > 0 && kNum < text.Length)
+                    {
+                        output = kNum;
+                        break;
+                    }
+                }
+            }
+
+            return output;
+        }
+
+        static void Settings()
+        {
+            int uInput = CreateMenu(new string[]
+            {
+                "Settings",
+                "Difficulty",
+                "Size",
+                "Toggle Border Portals",
+                "Wipe all data",
+                "Back to menu"
+            });
+
+            if (uInput == 5)
+                return;
+
+            if (uInput == 1)
+            {
+                uInput = CreateMenu(new string[]
+                {
+                    "Difficulty",
+                    "Easy",
+                    "Medium",
+                    "Hard",
+                    "Apocalypse",
+                    "Custom",
+                    "Back to settings"
+                });
+
+                if(uInput == 6)
+                {
+                    Settings();
+                    return;
+                }
+
+                if (uInput == 5)
+                {
+                    while (true)
+                    {
+                        Console.Clear();
+                        Write("Custom Difficulty", width / 2 - 6, height / 5);
+                        Write("-----------------", width / 2 - 6, height / 5 + 1);
+                        Write("Set Reaction Time (ms): ", width / 2 - 6, height / 5 + 3);
+                        Write("Leave empty to exit", width / 2 - 6, height / 5 + 5, true);
+
+                        string input = Console.ReadLine();
+
+                        if (input == "")
+                            break;
+                        if (int.TryParse(input, out reactionTime))
+                        {
+                            Settings();
+                            return;
+                        }
+                    }
+                }
+
+                else
+                {
+                    switch (uInput)
+                    {
+                        case 1:
+                            reactionTime = 200;
+                            break;
+                        case 2:
+                            reactionTime = 50;
+                            break;
+                        case 3:
+                            reactionTime = 30;
+                            break;
+                        case 4:
+                            reactionTime = 10;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            else if (uInput == 2)
+            {
+                uInput = CreateMenu(new string[] {
+                    "Size",
+                    "Small (60x60)",
+                    "Medium (90x90),",
+                    "Large (120x120)",
+                    "Custom",
+                    "Back to settings"
+                });
+
+                if (uInput == 5)
+                {
+                    Settings();
+                    return;
+                }
+
+                else if (uInput == 4)
+                {
+                    Console.Clear();
+
+                    Write("Custom Size", width / 2 - 6, height / 5);
+                    Write("-----------", width / 2 - 6, height / 5 + 1);
+                    Write("Width: ", width / 2 - 6, height / 5 + 3);
+                    Write("Height: ", width / 2 - 6, height / 5 + 4, true);
+                    Write("Leave empty to exit", width / 2 - 6, height / 5 + 5, true);
+
+                    int newW, newH;
+
+                    while (true)
+                    {
+                        string input = Console.ReadLine();
+
+                        if (input == "")
+                        {
+                            Settings();
+                            return;
+                        }
+
+                        if (int.TryParse(input, out newW))
+                        {
+                            break;
+                        }
+                    }
+
+                    Console.SetCursorPosition(width / 2 + 2, height / 5 + 4);
+
+                    while (true)
+                    {
+                        string input = Console.ReadLine();
+
+                        if (input == "")
+                        {
+                            Settings();
+                            return;
+                        }
+
+                        if (int.TryParse(input, out newH))
+                        {
+                            newH /= 2;
+
+                            Console.SetWindowSize(newW, newH);
+                            width = Console.WindowWidth;
+                            height = Console.WindowHeight;
+                            Settings();
+                            return;
+                        }
+                    }
+                }
+
+                else
+                {
+                    switch (uInput)
+                    {
+                        case 1:
+                            Console.SetWindowSize(60, 30);
+                            Console.SetBufferSize(60, 30);
+                            break;
+                        case 2:
+                            Console.SetWindowSize(90, 45);
+                            Console.SetBufferSize(90, 45);
+                            break;
+                        case 3:
+                            Console.SetWindowSize(120, 60);
+                            Console.SetBufferSize(120, 60);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                
+            }
+
+            else if(uInput == 3)
+            {
+                walls = !walls;
+            }
+
+            else if(uInput == 4)
+            {
+                uInput = CreateMenu(new string[]
+                {
+                    "Are you sure?",
+                    "Yes",
+                    "No"
+                });
+
+                if(uInput == 1)
+                {
+                    foreach(string path in Directory.EnumerateFiles(appdata))
+                    {
+                        File.Delete(path);
+                    }
+
+                    Directory.Delete(appdata);
+                }
+            }
         }
     }
 }
