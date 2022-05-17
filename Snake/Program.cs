@@ -15,33 +15,60 @@ namespace Snake
 
         static void Main()
         {
-            Console.Clear();
+            int input = CreateMenu(new string[] {
+                "SNAKE",
+                "Play",
+                "Settings",
+                "Stats",
+                "Quit"
+            });
 
-            Write("SNAKE", width / 2 - 2, height / 5);
-            Write("-----", width / 2 - 2, height / 5 + 1);
-            Write("1. Play", width / 2 - 2, height / 5 + 3);
-            Write("2. Settings", width / 2 - 2, height / 5 + 4);
-            Write("3. Quit", width / 2 - 2, height / 5 + 5);
+            if (input == 1)
+                Game();
 
-            while (true)
+            else if (input == 2)
             {
-                ConsoleKey k = Console.ReadKey(true).Key;
+                Settings();
+                width = Console.WindowWidth;
+                height = Console.WindowHeight;
+                Main();
+            }
 
-                if (k == ConsoleKey.D1)
-                    Game();
+            else if(input == 3)
+            {
+                Console.Clear();
 
-                if (k == ConsoleKey.D2)
+                Write("Stats", width / 2 - 3, height / 5);
+                Write("-----", width / 2 - 3, height / 5 + 1);
+
+                int offY = 1;
+
+                if (File.Exists(appdata + "stats"))
                 {
-                    Settings();
-                    width = Console.WindowWidth;
-                    height = Console.WindowHeight;
-                    Main();
-                    return;
+                    string[] lines = File.ReadAllLines(appdata + "stats");
+
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        bool saveWalls = lines[i].Remove(4) == true.ToString() ? true : false;
+
+                        Write($"With{(saveWalls ? "" : "out")} walls: {lines[i].Substring((saveWalls ? 4 : 5))}", width / 2 - 3, height / 5 + 3 + i);
+
+                        offY += i;
+                    }
                 }
 
-                if (k == ConsoleKey.D3)
-                    Environment.Exit(0);
+                else
+                    Write("No data", width / 2 - 4, height / 5 + 3);
+
+                Write("Press any key to continue...", width / 2 - 3, height / 5 + 4 + offY);
+
+                Console.ReadKey(true);
+
+                Main();
             }
+
+            else if (input == 4)
+                Environment.Exit(0);
         }
 
         static void Game()
@@ -177,7 +204,7 @@ namespace Snake
                     {
                         executed = true;
 
-                        if(int.Parse(text[i].Substring(4)) < score)
+                        if(int.Parse(text[i].Substring((walls ? 4 : 5))) < score)
                         {
                             highScore = true;
                             text[i] = $"{walls}{score}";
@@ -207,11 +234,13 @@ namespace Snake
                 }
             }
 
+            Write($"With{(walls ? "" : "out")} walls", width / 2 - 4, height / 5 + 5);
+
             int input = CreateMenu(new string[] {
                 "         ",
                 "Retry",
                 "Back to menu"
-            }, false, 5);
+            }, false, 6);
 
             if (input == 1)
                 Game();
@@ -327,10 +356,11 @@ namespace Snake
                 "Difficulty",
                 "Size",
                 "Toggle Border Portals",
+                "Wipe all data",
                 "Back to menu"
             });
 
-            if (uInput == 4)
+            if (uInput == 5)
                 return;
 
             if (uInput == 1)
@@ -492,6 +522,26 @@ namespace Snake
             else if(uInput == 3)
             {
                 walls = !walls;
+            }
+
+            else if(uInput == 4)
+            {
+                uInput = CreateMenu(new string[]
+                {
+                    "Are you sure?",
+                    "Yes",
+                    "No"
+                });
+
+                if(uInput == 1)
+                {
+                    foreach(string path in Directory.EnumerateFiles(appdata))
+                    {
+                        File.Delete(path);
+                    }
+
+                    Directory.Delete(appdata);
+                }
             }
         }
     }
