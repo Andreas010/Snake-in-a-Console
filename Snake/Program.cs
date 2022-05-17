@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Threading;
+using System.IO;
+using System.Linq;
 
 namespace Snake
 {
     class Program
     {
+        static readonly string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Snake\\";
         static int width = Console.WindowWidth;
         static int height = Console.WindowHeight;
         static int reactionTime = 50;
+        static bool walls = false;
 
         static void Main()
         {
@@ -24,7 +28,7 @@ namespace Snake
                 ConsoleKey k = Console.ReadKey(true).Key;
 
                 if (k == ConsoleKey.D1)
-                    break;
+                    Game();
 
                 if (k == ConsoleKey.D2)
                 {
@@ -37,12 +41,11 @@ namespace Snake
 
                 if (k == ConsoleKey.D3)
                     Environment.Exit(0);
-
-                //TODO: Implement Settings
             }
+        }
 
-            
-
+        static void Game()
+        {
             Console.Clear();
             sbyte[,] stepMatrix = new sbyte[width, height];
             for (int i = 0; i < width; i++)
@@ -85,8 +88,8 @@ namespace Snake
                 {
                     Console.SetCursorPosition(foodX, foodY);
                     Console.Write('█');
-                    foodX = r.Next(0, width-1);
-                    foodY = r.Next(0, height-1);
+                    foodX = r.Next(0, width - 1);
+                    foodY = r.Next(0, height - 1);
                     score++;
                 }
                 else
@@ -130,27 +133,114 @@ namespace Snake
                 else if (dir == 3)
                     headX--;
 
-                headX = Wrap(headX, width - 1);
-                headY = Wrap(headY, height - 1);
+                headX = WrapHead(headX, width - 1, score);
+                headY = WrapHead(headY, height - 1, score);
 
-                if(stepMatrix[headX, headY] != -1)
+                if (stepMatrix[headX, headY] != -1)
                 {
-                    // TODO: Death Screen
-                    Console.Clear();
-                    while (Console.KeyAvailable)
-                        Console.ReadKey(true);
-                    Console.SetCursorPosition(width / 2 - 5, height / 2);
-                    Console.Write("GAME  OVER");
-                    Console.SetCursorPosition(width / 2 - 5, height / 2+2);
-                    Console.Write($"SCORE: {score}");
-                    Console.ReadKey(true);
-                    Main();
+                    Die(score);
+                    return;
                 }
 
                 TimeSpan span = DateTime.Now - past;
                 if (span.TotalMilliseconds < reactionTime)
                     Thread.Sleep(reactionTime - (int)span.TotalMilliseconds);
             }
+        }
+
+        static void Die(int score)
+        {
+            Console.Clear();
+
+            Write("You died!", width / 2 - 4, height / 5);
+            Write("---------", width / 2 - 4, height / 5 + 1);
+            Write($"Score: {score}", width / 2 - 4, height / 5 + 3);
+
+            bool highScore = false;
+
+            if(!Directory.Exists(appdata))
+                Directory.CreateDirectory(appdata);
+            if (!File.Exists(appdata + "stats"))
+            {
+                File.WriteAllLines(appdata + "stats", new string[] { $"{walls}{score}" });
+                highScore = true;
+            }
+            else
+            {
+                string[] text = File.ReadAllLines(appdata + "stats");
+
+                bool executed = false;
+
+                for(int i = 0; i < text.Length; i++)
+                {
+                    if (text[i].StartsWith(walls.ToString()))
+                    {
+                        executed = true;
+
+                        if(int.Parse(text[i].Substring(4)) < score)
+                        {
+                            highScore = true;
+                            text[i] = $"{walls}{score}";
+
+                            File.WriteAllLines(appdata + "stats", text);
+                        }
+
+                        break;
+                    }
+                }
+
+                if (!executed)
+                {
+                    File.AppendAllText(appdata + "stats", $"{walls}{score}");
+                    highScore = true;
+                }
+            }
+
+            if (highScore)
+                Write("New high score!", width / 2 - 4, height / 5 + 4);
+            else
+            {
+                foreach(string s in File.ReadAllLines(appdata + "stats"))
+                {
+                    if (s.StartsWith(walls.ToString()))
+                        Write($"High score: {s.Substring(4)}", width / 2 - 4, height / 5 + 4);
+                }
+            }
+
+            int input = CreateMenu(new string[] {
+                "         ",
+                "Retry",
+                "Back to menu"
+            }, false, 5);
+
+            if (input == 1)
+                Game();
+
+            else if (input == 2)
+                Main();
+        }
+
+        static int WrapHead(int value, int maxValue, int score)
+        {
+            if (value < 0)
+            {
+                if (walls)
+                {
+                    Die(score);
+                    Environment.Exit(0);
+                }
+                value = maxValue;
+            }
+            else if (value >= maxValue)
+            {
+                if (walls)
+                {
+                    Die(score);
+                    Environment.Exit(0);
+                }
+                value = 0;
+            }
+            return value;
         }
 
         static int Wrap(int value, int maxValue)
@@ -182,7 +272,7 @@ namespace Snake
             }
         }
 
-        static int CreateMenu(string[] text, bool cleared = true)
+        static int CreateMenu(string[] text, bool cleared = true, int offY = 0)
         {
             if(cleared)
                 Console.Clear();
@@ -192,19 +282,19 @@ namespace Snake
 
                 if(i == 0)
                 {
-                    Write(text[0], width / 2 - text[0].Length / 2, height / 5);
+                    Write(text[0], width / 2 - text[0].Length / 2, height / 5 + offY);
 
                     string underline = null;
 
                     for (int j = 0; j < text[0].Length; j++)
                         underline += "-";
 
-                    Write(underline, width / 2 - text[0].Length / 2, height / 5 + 1);
+                    Write(underline, width / 2 - text[0].Length / 2, height / 5 + 1 + offY);
                 }
 
                 else
                 {
-                    Write($"{i}. {text[i]}", width / 2 - text[0].Length / 2, height / 5 + i + 2);
+                    Write($"{i}. {text[i]}", width / 2 - text[0].Length / 2, height / 5 + i + 2 + offY);
                 }
             }
 
@@ -237,11 +327,10 @@ namespace Snake
                 "Difficulty",
                 "Size",
                 "Toggle Border Portals",
-                "Set cmd shortcut",
                 "Back to menu"
             });
 
-            if (uInput == 5)
+            if (uInput == 4)
                 return;
 
             if (uInput == 1)
@@ -307,7 +396,7 @@ namespace Snake
                 }
             }
 
-            if (uInput == 2)
+            else if (uInput == 2)
             {
                 uInput = CreateMenu(new string[] {
                     "Size",
@@ -398,6 +487,11 @@ namespace Snake
                     }
                 }
                 
+            }
+
+            else if(uInput == 3)
+            {
+                walls = !walls;
             }
         }
     }
